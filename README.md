@@ -69,7 +69,8 @@ git lfs pull
 - 下位机工程中的编译中间文件已通过 `.gitignore` 排除，生成的固件文件可按需重新编译。
 - 项目内配置的远程服务属于原始开发环境，未来可能失效；建议二次开发时改为自有后端和消息服务。
 - 当前项目未声明开源许可证；未经作者许可，不代表允许将代码用于商业分发。
-
+## 演示视频链接
+[![点击观看B站视频](https://github.com/user/repo/raw/main/cover.png)](https://www.bilibili.com/video/BV1KSgs6GEXw?vd_source=98438552cbaa9cd530c1f9348989ba6f)
 ## 作者
 
 冯莉珺 · 2024 届毕业设计
