@@ -70,7 +70,8 @@ git lfs pull
 - 项目内配置的远程服务属于原始开发环境，未来可能失效；建议二次开发时改为自有后端和消息服务。
 - 当前项目未声明开源许可证；未经作者许可，不代表允许将代码用于商业分发。
 ## 演示视频链接
-[![点击观看B站视频（https://github.com/FLJHH/iot-greenhouse-management-system/blob/main/%E6%BC%94%E7%A4%BA%E5%9B%BE%E5%83%8F.png）](https://github.com/user/repo/raw/main/cover.png)](https://www.bilibili.com/video/BV1KSgs6GEXw?vd_source=98438552cbaa9cd530c1f9348989ba6f)
-## 作者
 
+[![演示图像](https://github.com/FLJHH/iot-greenhouse-management-system/blob/main/演示图像.png?raw=true)](https://www.bilibili.com/video/BV1KSgs6GEXw/?share_source=copy_web&vd_source=98438552cbaa9cd530c1f9348989ba6f)
+
+## 作者
 冯莉珺 · 2024 届毕业设计
