@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+
+<style>
+	[v-cloak] {
+		display: none;
+	}
+</style>
+
+
+
+<head>
+	<meta charset="utf-8">
+	<meta id="viewport" name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,
+		minimum-scale=1.0,user-scalable=no,viewport-fit=cover">
+	<link rel="stylesheet" href="../js/element-ui/theme-chalk/index.css">
+</head>
+
+<body>
+
+	<div id="container" class="container" v-cloak>
+
+
+		<el-row>
+			<el-card class="box-card" style="margin: 10px 10px;">
+
+ 
+
+				<el-col :span="24" :xs="24" :lg="16">
+					<div style="border: 1px solid #3ca98e ; padding: 20px 20px;">
+
+						<el-row>
+							<el-col :span="12" :xs="24">
+								<el-button type="primary" icon="el-icon-camera" @click="take_image()"
+									style="margin: 10px;">拍照
+								</el-button>
+							</el-col>
+							<el-col :span="12" :xs="24">
+								<el-button type="danger" icon="el-icon-video-camera" @click="take_video()"
+									style="margin: 10px;">
+									视频</el-button>
+							</el-col>
+						</el-row>
+
+						<!-- <img id="player" style="width:700px;height:552px;margin: 20px auto ;" /> -->
+						<img id="player" style="width:100%;height:auto;margin: 20px auto ;" />
+
+	 
+					</div>
+
+				</el-col>
+
+
+				<el-col :span="24" :xs="24" :lg="8">
+					
+					<el-row style="border: 1px solid #a03ca9 ;">
+						<template v-for="(item,index) in image_list">
+							<el-col :span="12" :xs="24" :lg="24">
+								<div style="padding:20px 20px ;">
+									<!-- <img :id="item.id" :src="item.value" style="width:350px;height:270px;margin: 5px auto ;" /> -->
+									<img :id="item.id" :src="item.value"
+										style="width:100%;height:auto;margin: 5px auto ;" />
+									<div style="margin-bottom:20px ;text-align: center;">{{item.time}} </div>
+								</div>
+
+							</el-col>
+						</template>
+					</el-row>
+				</el-col>
+
+
+			</el-card>
+		</el-row>
+ 
+
+	</div>
+
+</body>
+
+
+
+
+
+
+
+
+<script src="../js/project_config.js"></script>
+<script src="../js/vue.js"></script>
+<script src="../js/element-ui/index.js"></script>
+<script src="../js/jquery-3.4.1.min.js"></script>
+<script src="../js/mqtt.min.js"></script>
+<script src="../js/db_table.js"></script>
+
+
+
+<script>
+
+
+	var flag_take_img = 0;
+	var flag_current_index = 1;
+
+ 
+
+	var video_record_vue;
+
+	function upload_img_to_server(jpeg_img) {
+
+		//----------------------------------------------------//
+
+		var image_list = video_record_vue.image_list;
+
+		var temp_new_image_list = [];
+
+		var new_item = image_list[image_list.length - 1];
+		new_item.value = jpeg_img;
+		new_item.time = date_to_string(new Date());
+
+		db_table_ops("post", "video_image", "set", new_item, function (data) {
+			// update_data_from_server(data);
+		});
+
+		var tatal_len = 0;
+
+		temp_new_image_list.push(new_item);
+		tatal_len = tatal_len + new_item.value.length ;
+
+		for (let i = 0; i < image_list.length - 1; i++) {
+			temp_new_image_list.push(image_list[i]);
+			tatal_len = tatal_len + new_item.value.length ;
+		}
+
+		video_record_vue.image_list = temp_new_image_list;
+
+		console.log("img tatal len = "+tatal_len);
+
+		//----------------------------------------------------//
+	}
+
+
+	function randomString(len) {
+		len = len || 32;
+		var $chars = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678';    /****默认去掉了容易混淆的字符oOLl,9gq,Vv,Uu,I1****/
+		var maxPos = $chars.length;
+		var pwd = '';
+		for (i = 0; i < len; i++) {
+			pwd += $chars.charAt(Math.floor(Math.random() * maxPos));
+		}
+		return pwd;
+	}
+
+	const options = {
+		clean: true,
+		connectTimeout: 4000,
+		clientId: project_pid + randomString(6),
+		username: cfg_video_mqtt_username,
+		password: cfg_video_mqtt_passwd
+	}
+	const connectUrl = cfg_video_mqtt_server;
+	const client = mqtt.connect(connectUrl, options);
+
+	//当重新连接启动触发回调
+	client.on('reconnect', () => {
+		// $("#div1").text("正在重连.....");
+		console.log("mqtt: reconnect!");
+	});
+	//连接断开后触发的回调
+	client.on("close", function () {
+		// $("#div1").text("客户端已断开连接.....");
+	});
+	//从broker接收到断开连接的数据包后发出。MQTT 5.0特性
+	client.on("disconnect", function (packet) {
+		// $("#div1").text("从broker接收到断开连接的数据包....." + packet);
+	});
+	//客户端脱机下线触发回调
+	client.on("offline", function () {
+		// $("#div1").text("客户端脱机下线.....");
+	});
+	//当客户端无法连接或出现错误时触发回调
+	client.on("error", (error) => {
+		// $("#div1").text("客户端出现错误....." + error);
+	});
+	//当客户端发送任何数据包时发出。这包括published()包以及MQTT用于管理订阅和连接的包
+	client.on("packetsend", (packet) => {
+		// $("#div1").text("客户端已发出数据包....." + packet);
+	});
+	//当客户端接收到任何数据包时发出。这包括来自订阅主题的信息包以及MQTT用于管理订阅和连接的信息包
+	client.on("packetreceive", (packet) => {
+		// $("#div1").text("客户端已收到数据包....." + packet);
+	});
+
+	//成功连接后触发的回调
+	client.on("connect", function (connack) {
+
+		console.log("mqtt connected !!!");
+		//订阅某主题
+		client.subscribe(cfg_video_topic_img_upload, { qos: 0 });
+		//每隔2秒发布一次数据
+
+	});
+
+
+	function arrayBufferToBase64(buffer) {
+		var binary = '';
+		var bytes = new Uint8Array(buffer);
+		var len = bytes.byteLength;
+		for (var i = 0; i < len; i++) {
+			binary += String.fromCharCode(bytes[i]);
+		}
+		return window.btoa(binary);
+	}
+
+
+	//当客户端接收到发布消息时触发回调
+	/**
+	 * topic:收到的数据包的topic
+	 * message:收到的数据包的负载playload
+	 * packet:收到的数据包
+	 */
+	client.on('message', (topic, message, packet) => {
+		// $("#div3").text("客户端收到订阅消息,topic=" + topic + ";消息数据:" + message + ";数据包:" + packet);
+
+		var base64_img = arrayBufferToBase64(message);
+		var img_value = 'data:image/jpeg;base64,' + base64_img;
+		player.src = img_value;
+
+		if (flag_take_img == 1) {
+			flag_take_img = 0;
+			upload_img_to_server(img_value);
+		}
+
+
+
+	});
+	//页面离开自动断开连接
+	$(window).bind("beforeunload", () => {
+		// client.disconnect();
+	})
+
+
+
+	var app = new Vue({
+		el: '#container',
+		data: {
+			isActive: false, // 是否显示弹窗
+			isAddNew: true, //是否是添加数据
+			selected: -1, // 选择了哪条记录
+			selectedlist: {}, // 选中的信息
+			slist: [], //add default value here
+			searchlist: [],
+			list: [],
+			analyze_script: "",
+			image_list: [],
+			image_update_index_id: "",
+		},
+
+
+		created() {
+
+			video_record_vue = this;
+
+			//启动分析引擎
+			_self = this;
+			db_table_ops('get', 'analyze', 'get', { id: "video_record" }, function (data) {
+
+				if (data == null || data.value == undefined || data.value == null) {
+					console.log("规则引擎获取失败!");
+					return;
+				}
+
+				_self.analyze_script = data.value;
+				console.log(_self.analyze_script);
+				timer_request = setInterval(_self.check_sensor, 3000);
+
+			});
+
+
+
+			//请求历史图片数据
+			db_table_ops("get", "video_image", "select", "{}", function (data) {
+
+				//按照时间排序
+				var temp_value = data;
+				temp_value.sort(function (a, b) {
+					var time_a = new Date(a.time);
+					var time_b = new Date(b.time);
+					return (time_b - time_a);
+				});
+
+				_self.image_list = temp_value;
+ 
+			});
+
+
+		},
+		methods: {
+
+ 
+			take_image() {
+
+				flag_take_img = 1;
+				client.publish(cfg_video_topic_img_take, 'hello', { qos: 0, rein: false });
+
+			},
+			take_video() {
+
+				client.publish(cfg_video_topic_video_take, 'hello', { qos: 0, rein: false });
+			},
+			check_sensor() {
+
+				var _self = this;
+				db_table_ops('get', 'sensor_update', 'select', {}, function (data) {
+					_self.run_analyze(data);
+				});
+
+			},
+			run_analyze(data) {
+				if (this.analyze_script != "") {
+
+					// console.log("analyze_script=" + this.analyze_script);
+
+					try {
+						var analyze_function = new Function('context', 'data', this.analyze_script);
+						analyze_function(this, data);
+					} catch (error) {
+						this.$message({
+							message: "规则引擎解析失败:" + error,
+							type: 'warning',
+							duration: 1800,
+							dangerouslyUseHTMLString: true
+						});
+
+						console.log("规则引擎解析失败:\n" + error)
+					}
+
+				}
+			}
+		},
+		watch: {}
+	});
+
+ 
+
+</script>
+
+</html>

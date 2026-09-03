@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<style>
+	[v-cloak] {
+		display: none;
+	}
+</style>
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title></title>
+</head>
+
+<body>
+
+</body>
+
+
+<script type="text/javascript" src="../js/project_config.js"></script>
+// 引入jQuery库，用于实现一些HTML的交互功能
+<script src="../js/jquery-3.4.1.min.js"></script>
+
+
+
+
+<script type="text/javascript">
+
+	function db_request_option(type, table, option, arg_data, callback) {
+
+		var data = {}; // 定义一个空的data对象
+		var db_name = table; // 获取传入的table参数
+
+		if (arg_data != null) { // 如果arg_data不为空
+			data = JsonDeepCopy(arg_data); // 使用JsonDeepCopy函数将arg_data参数深拷贝到data对象中
+			// if (data.hasOwnProperty("time")) { // 如果data对象中有time属性
+			//     delete data.time; // 删除data对象中的time属性
+			// }
+			// if (data.hasOwnProperty("时间")) { // 如果data对象中有时间属性
+			//     delete data.时间; // 删除data对象中的时间属性
+			// }
+		}
+
+		if (type == 'post') { // 如果type参数为post
+			request_url = cfg_db_option_url + "?option=" + option + "&data={}" + "&table=" + db_name; // 拼接请求的url
+
+			console.log(request_url); // 打印请求的url
+
+			$.ajax({ // 使用$.ajax发起请求
+				type: 'post', // 请求类型
+				dataType: "json", // 期望返回的数据类型
+				data: data, // 要发送的数据
+				url: request_url, // 请求的url
+				success: function (data) { // 请求成功时执行的回调函数
+					var json_data;
+					try {
+						json_data = JSON.parse(data); // 将返回的数据解析为json格式
+					} catch (error) {
+						json_data = data; // 如果解析失败，则返回原始数据
+					}
+					callback(json_data); // 调用callback函数，并将解析后的数据作为参数传递
+				},
+			});
+		}
+		else {
+			request_url = cfg_db_option_url + "?option=" + option + "&data=" + JSON.stringify(data) + "&table=" + db_name; // 拼接请求的url
+
+			console.log(request_url); // 打印请求的url
+
+			$.ajax({ // 使用$.ajax发起请求
+				type: 'get', // 请求类型
+				dataType: "json", // 期望返回的数据类型
+				url: request_url, // 请求的url
+				success: function (data) { // 请求成功时执行的回调函数
+					var json_data;
+					try {
+						json_data = JSON.parse(data); // 将返回的数据解析为json格式
+					} catch (error) {
+						json_data = data; // 如果解析失败，则返回原始数据
+					}
+					callback(json_data); // 调用callback函数，并将解析后的数据作为参数传递
+				},
+			});
+		}
+	}
+
+
+
+	var config_data = JSON.parse(project_data);
+	console.log(project_data);
+
+
+	if (config_data != null && config_data != '') {
+		if (config_data.sys_cfg_router_enable != null && config_data.sys_cfg_router_enable != '') {
+			if (config_data.sys_cfg_router_enable == "true") {
+				
+				db_request_option("get", "router", "select", "{}", function (data) {
+					var pc_login_url = "";
+					var app_login_url = "";
+					
+					for (let item of data) {
+						//If the item type is "pc_login" and the enable property is "true"
+						if (item.type.trim() == "pc_login" && item.enable.trim() == "true" ) {
+							//Store the URL of the item in the pc_login_url variable
+							pc_login_url = item.url;
+						}
+						//If the item type is "app_login" and the enable property is "true"
+						else if (item.type.trim() == "app_login" && item.enable.trim() == "true") {
+							//Store the URL of the item in the app_login_url variable
+							app_login_url = item.url;
+						}
+					}
+
+					
+					// 判断是否为移动端
+					if (isMobile()) {
+						// 判断 app_login_url 是否为空
+						if (app_login_url != "") {
+							// 将当前页面的 URL 替换为 app_login_url
+							window.location.replace(app_login_url);
+						}
+						else {
+							// 将当前页面的 URL 替换为 login.html
+							window.location.replace("login.html");
+						}
+					}
+					else {
+						if (pc_login_url != "") {
+							console.log("pc_login:" + pc_login_url);
+							window.location.replace(pc_login_url);
+						}
+						else {
+							window.location.replace("login.html");
+						}
+					}
+
+				});
+			}
+			else {
+				window.location.replace("login.html");
+			}
+		}
+		else {
+			window.location.replace("login.html");
+		}
+	}
+	else {
+		window.location.replace("login.html");
+	}
+
+
+
+
+</script>
+
+</html>

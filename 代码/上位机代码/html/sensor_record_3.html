@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html>
+
+<style>
+	[v-cloak] {
+		display: none;
+	}
+</style>
+
+
+<head>
+	<meta charset="utf-8">
+	<meta id="viewport" name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,
+		minimum-scale=1.0,user-scalable=no,viewport-fit=cover">
+
+	<!-- <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css"> -->
+	<link rel="stylesheet" href="../js/element-ui/theme-chalk/index.css">
+	<!-- <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css"> -->
+
+
+
+
+</head>
+
+<body>
+
+	<div id="container" class="container" v-cloak>
+
+		<div style="margin-left:10px ;margin-bottom: 10px;">
+			<template>
+				<el-tabs type="border-card">
+					<el-tab-pane v-for="(item_name, index) in list_name" :key="index" :label=item_name>
+						<div :id="item_name" style="height:500px; width: 80%; border: 1px solid #DDDDDD;">
+						</div>	 
+					</el-tab-pane>
+				</el-tabs>
+			</template>
+		</div>
+		
+		
+
+
+
+		<el-card class="box-card" style="margin-bottom: 20px;margin-left: 60px;">
+
+			<el-row>
+				<el-col :span="12" :xs="24">
+					<el-button type="primary" icon="el-icon-download" @click="download_history(item)"
+						style="margin: 10px;">导出历史数据</el-button>
+				</el-col>
+				<el-col :span="12" :xs="24">
+					<el-button type="danger" icon="el-icon-delete" @click="clean_history(item)" style="margin: 10px;">
+						清空历史数据</el-button>
+				</el-col>
+			</el-row>
+
+		</el-card>
+
+
+
+		<!-- <div class="block">
+			<el-timeline>
+				<template v-for="(item, index) of slist">
+					<el-timeline-item :timestamp="item.time" placement="top">
+						<el-card>
+							<h4>名称：{{item.sensor_name}}</h4>
+							<p>数值：{{item.sensor_value}}</p>
+							<p>{{item.time}}</p>
+						</el-card>
+					</el-timeline-item>
+				</template>
+
+			</el-timeline>
+		</div> -->
+
+
+	</div>
+
+</body>
+
+
+
+
+
+
+
+
+<script src="../js/project_config.js"></script>
+
+<!-- <script src="https://unpkg.com/element-ui/lib/index.js"></script> -->
+
+<script src="../js/vue.js"></script>
+<script src="../js/element-ui/index.js"></script>
+<script src="../js/jquery-3.4.1.min.js"></script>
+
+
+<script src="../js/highcharts/highcharts.js"></script>
+<script src="../js/highcharts/exporting.js"></script>
+<script src="../js/highcharts/highcharts-zh_CN.js"></script>
+<script src="../js/highcharts/highcharts-more.js"></script>
+<!-- <script src="https://cdn.highcharts.com.cn/10.2.1/modules/oldie.js"></script> -->
+
+
+<!-- import Vue before Element -->
+<!-- <script src="https://unpkg.com/vue@2/dist/vue.js"></script> -->
+<!-- import JavaScript -->
+<!-- <script src="https://unpkg.com/element-ui/lib/index.js"></script> -->
+
+
+
+<script>
+
+
+
+
+	var app = new Vue({
+		el: '#container',
+		data: {
+			isActive: false, // 是否显示弹窗
+			isAddNew: true, //是否是添加数据
+			selected: -1, // 选择了哪条记录
+			selectedlist: {}, // 选中的信息
+			slist: [], //add default value here
+			searchlist: [],
+			list: [],
+			history_chart_data: [], //历史数据图表
+			list_name: [], //名称总量
+			list_name_chart_data:{}  //每个名称对应的曲线数据
+		},
+
+
+		created() {
+
+			// this.setSlist(this.list);
+
+			var _self = this;
+
+			this.request_option("history", null, function (data) {
+				_self.list = data;
+
+				console.log(JSON.stringify(data));
+
+				_self.setSlist(_self.list);
+
+				_self.history_chart_data = data;
+
+				_self.get_list_name(data); //统计全部名字
+
+				console.log(_self.list_name);
+				
+				_self.$nextTick(_self.create_history_chart);
+				// setTimeout(_self.create_history_chart,10); //等待vue的dom加载完成
+
+
+ 
+			});
+
+			this.$message({
+				message: '数据加载中...',
+				center: true,
+				type: 'success'
+			});
+
+
+		},
+		methods: {
+
+
+			create_history_chart()
+			{
+
+				data = this.history_chart_data;
+
+				for(let item of this.list_name)
+				{
+					this.init_chart_data_by_name(data, item);
+					this.init_history_chart(item, this.list_name_chart_data[item], item);
+				}
+
+			},
+
+			// 修改数据
+			showOverlay(item) {
+
+				this.selectedlist = item;
+				this.changeOverlay();
+
+				this.isAddNew = false;
+
+			},
+			// 点击保存按钮
+			modify(value) {
+
+				_self = this;
+
+				console.log(JSON.stringify(value));
+
+				if (this.isAddNew) {
+					console.log("option is  insert");
+					this.request_option("insert", value, function (data) {
+
+						this.request_option("select", " ", function (data) {
+							console.log(JSON.stringify(data));
+
+
+							_self.list = data;
+
+
+							_self.setSlist(data);
+							_self.changeOverlay();
+						});
+
+					});
+				} else {
+					console.log("option is  update");
+
+					this.request_option("update", value, function (data) {
+
+						this.request_option("select", " ", function (data) {
+							console.log(JSON.stringify(data));
+
+							_self.list = data;
+
+
+							_self.setSlist(data);
+							_self.changeOverlay();
+						});
+
+					});
+
+				}
+			},
+
+			add: function () {
+
+				this.selectedlist = this.slist[0];
+
+				for (var value in this.selectedlist) {
+					this.selectedlist[value] = '';
+				}
+
+				this.selected = -1;
+				this.isAddNew = true;
+				this.isActive = true;
+			},
+			// delete list in index location
+
+			del(item) {
+
+				console.log(item);
+
+				if (this.slist.length < 2) {
+					return;
+				}
+
+				_self = this;
+
+				this.this.request_option("delete", item, function (data) {
+					// _self.resource = data;
+
+					console.log(JSON.stringify(data));
+
+					_self.list = data;
+
+
+					_self.setSlist(data);
+
+				});
+			},
+
+			changeOverlay() {
+				this.isActive = !this.isActive;
+			},
+
+			// 获取需要渲染到页面中的数据
+			setSlist(arr) {
+				this.slist = JSON.parse(JSON.stringify(arr));
+			},
+
+			// 搜索
+			search(e) {
+				var v = e.target.value,
+					self = this;
+
+				self.searchlist = [];
+
+				if (v) {
+					var ss = [];
+					// 过滤需要的数据
+					this.list.forEach(function (item) {
+
+						for (var value in item) {
+							if (value != null && item[value] != null) {
+								var search_string = item[value] + "";
+								if (search_string != null && search_string.indexOf(v) > -1) {
+									if (self.searchlist.indexOf(search_string) == -1) {
+										self.searchlist.push(search_string);
+									}
+									ss.push(item);
+								}
+							}
+
+						}
+					});
+
+					this.setSlist(ss); // 将过滤后的数据给了slist
+				} else {
+					// 没有搜索内容，则展示全部数据
+					this.setSlist(this.list);
+				}
+			},
+			clean_history(item) {
+
+				_self = this;
+
+				this.request_option("clean", null, function (data) {
+					_self.list = data;
+
+					console.log(JSON.stringify(data));
+
+					_self.setSlist(_self.list);
+				});
+
+			},
+			download_history(item) {
+
+				var file_name = '历史数据';
+				var myDate = new Date();
+				var mytime = myDate.toLocaleTimeString();     //获取当前时间
+
+				file_name = file_name + '_' + mytime;
+
+				JSONToExcelConvertor(this.list, file_name);
+
+				this.$alert('数据导出完成,请查看[ ' + file_name + '.xls ]', '提示', {
+					confirmButtonText: '确认'
+				});
+
+			},
+			init_history_chart(arg_div, arg_data, arg_name) {
+
+				var char_instance = "#" + arg_div;
+
+				console.log("chart div id = "+char_instance);
+				// console.log("arg_data="+arg_data);
+
+				console.log($(char_instance));
+
+				console.log($(char_instance).length );
+
+			 
+
+
+				$(char_instance).highcharts({
+
+					chart: {
+						zoomType: 'x'
+					},
+					title: {
+						text: arg_name + "历史数据"
+					},
+					subtitle: {
+						text: document.ontouchstart === undefined ?
+							'鼠标拖动可以进行缩放' : '手势操作进行缩放'
+					},
+					xAxis: {
+						type: 'datetime',
+						// dateTimeLabelFormats: {
+						// 	millisecond: '%H:%M:%S.%L',
+						// 	second: '%H:%M:%S',
+						// 	minute: '%H:%M',
+						// 	hour: '%H:%M',
+						// 	day: '%m-%d',
+						// 	week: '%m-%d',
+						// 	month: '%Y-%m',
+						// 	year: '%Y'
+						// }
+
+						dateTimeLabelFormats: {
+							millisecond: '%Y-%m-%d %H:%M:%S',
+							second: '%Y-%m-%d %H:%M:%S',
+							minute: '%Y-%m-%d %H:%M:%S',
+							hour: '%Y-%m-%d %H:%M:%S',
+							day: '%Y-%m-%d',
+							week: '%Y-%m-%d',
+							month: '%Y-%m-%d',
+							year: '%Y-%m-%d'
+						}
+					},
+					tooltip: {
+						// dateTimeLabelFormats: {
+						// 	millisecond: '%H:%M:%S.%L',
+						// 	second: '%H:%M:%S',
+						// 	minute: '%H:%M',
+						// 	hour: '%H:%M',
+						// 	day: '%Y-%m-%d',
+						// 	week: '%m-%d',
+						// 	month: '%Y-%m',
+						// 	year: '%Y'
+						// }
+
+						dateTimeLabelFormats: {
+							millisecond: '%Y-%m-%d %H:%M:%S',
+							second: '%Y-%m-%d %H:%M:%S',
+							minute: '%Y-%m-%d %H:%M:%S',
+							hour: '%Y-%m-%d %H:%M:%S',
+							day: '%Y-%m-%d %H:%M:%S',
+							week: '%Y-%m-%d %H:%M:%S',
+							month: '%Y-%m-%d %H:%M:%S',
+							year: '%Y-%m-%d %H:%M:%S'
+						}
+					},
+					yAxis: {
+						title: {
+							text: ''
+						}
+					},
+					legend: {
+						enabled: false
+					},
+					exporting: {
+						enabled: false
+					},
+					plotOptions: {
+						area: {
+							fillColor: {
+								linearGradient: {
+									x1: 0,
+									y1: 0,
+									x2: 0,
+									y2: 1
+								},
+								stops: [
+									[0, new Highcharts.getOptions().colors[0]],
+									[1, new Highcharts.Color(Highcharts.getOptions().colors[0]).setOpacity(0).get('rgba')]
+								]
+							},
+							marker: {
+								radius: 2
+							},
+							lineWidth: 1,
+							states: {
+								hover: {
+									lineWidth: 1
+								}
+							},
+							threshold: null
+						}
+					},
+					series: [{
+						type: 'area',
+						name: arg_name,
+						data: arg_data
+					}]
+
+				});
+
+
+			},
+			init_chart_data_by_name(data_all, arg_name ) {
+
+				var temp_value = [];
+				for (let item of data_all) {
+					if (item.sensor_name == arg_name) {
+						var temp_value_item = [];
+						var int_value = parseInt(item.sensor_value);
+						var time = new Date(item.time).getTime() + 8 * 60 * 60 * 1000; //北京时间比UTC多8个时区
+
+						temp_value_item.push(time);
+						temp_value_item.push(int_value);
+
+						temp_value.push(temp_value_item); //构造 【时间，数值】[12312321,23]
+					}
+				}
+
+				//必须保证数据时间顺序
+				temp_value.sort(function (a, b) {
+					return (a[0] - b[0]);
+				});
+
+				this.list_name_chart_data[arg_name] = temp_value;
+
+				// this.init_history_chart(arg_name, this.list_name_chart_data[arg_name], arg_name);
+			},
+			get_list_name(data) {
+				let Array = []; //存放去重过后的数据
+				let obj = {}
+				for (let item of data) {
+					if (!obj[item.sensor_name]) {
+						Array.push(item.sensor_name);
+						obj[item.sensor_name] = true;
+					}
+				}
+
+				this.list_name = Array;
+			},
+			request_option(option, data, callback) {
+
+				var final_url = cfg_sensor_record_url;
+				final_url = final_url + "?option=" + option + "&data=" + JSON.stringify(data);
+
+				console.log(final_url);
+
+				$.ajax({
+					type: 'get',
+					dataType: "json",
+					url: final_url,
+					success: function (data) {
+						var json_data;
+						try {
+							json_data = JSON.parse(data);
+						} catch (error) {
+							json_data = data;
+						}
+						callback(json_data);
+					},
+				});
+			},
+
+			
+
+			
+
+
+		},
+		watch: {}
+	});
+
+
+ 
+</script>
+
+</html>

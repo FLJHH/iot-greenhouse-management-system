@@ -1,0 +1,6 @@
+* text=auto
+*.mp4 filter=lfs diff=lfs merge=lfs -text
+*.pdf binary
+*.pptx binary
+*.doc binary
+*.docx binary
