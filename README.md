@@ -71,6 +71,7 @@ git lfs pull
 - 当前项目未声明开源许可证；未经作者许可，不代表允许将代码用于商业分发。
 ## 演示视频链接
 
+点击图片跳转到视频
 [![演示图像](https://github.com/FLJHH/iot-greenhouse-management-system/blob/main/演示图像.png?raw=true)](https://www.bilibili.com/video/BV1KSgs6GEXw/?share_source=copy_web&vd_source=98438552cbaa9cd530c1f9348989ba6f)
 
 ## 作者
